@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"net/http"
-	"org.example/hello/upstream"
+	"org.example/hello/src/upstream"
 	"time"
 )
 
 func main() {
 
-	config, config_err := config()
+	config, configErr := config()
 
-	if config_err != nil {
-		fmt.Println(config_err)
+	if configErr != nil {
+		fmt.Println(configErr)
 		return
 	}
 
@@ -30,7 +30,12 @@ func main() {
 
 	if err == nil {
 		for _, region := range regions {
-			fmt.Println(region.ID)
+			countries, err := upstream.GetCountries(client, region.ID)
+			if err == nil {
+				for _, country := range countries {
+					fmt.Printf("%v -> %v\n", region.ID, country.ID)
+				}
+			}
 		}
 	} else {
 		fmt.Println(err)
