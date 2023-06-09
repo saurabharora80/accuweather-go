@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/spf13/viper v1.16.0
+	github.com/stretchr/testify v1.8.3
 	github.com/testcontainers/testcontainers-go v0.20.1
 	github.com/walkerus/go-wiremock v1.5.0
 )
@@ -15,6 +16,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/containerd/containerd v1.6.19 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v23.0.5+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -37,6 +39,7 @@ require (
 	github.com/opencontainers/runc v1.1.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect

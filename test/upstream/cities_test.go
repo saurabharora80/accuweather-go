@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/walkerus/go-wiremock"
@@ -11,7 +12,15 @@ import (
 	"testing"
 )
 
-func setUpSuite(t *testing.T) (func(t *testing.T), string) {
+type CitiesTestSuite struct {
+	suite.Suite
+	AccuweatherBaseUrl string
+	Container          testcontainers.Container
+	WiremockClient     *wiremock.Client
+	HttpClient         *resty.Client
+}
+
+func (suite *CitiesTestSuite) SetupSuite() {
 	ctx := context.Background()
 
 	containerRequest := testcontainers.ContainerRequest{
@@ -23,58 +32,62 @@ func setUpSuite(t *testing.T) (func(t *testing.T), string) {
 		testcontainers.GenericContainerRequest{ContainerRequest: containerRequest, Started: true})
 
 	if err != nil {
-		t.Fatalf("Failed to start container due to %q", err.Error())
+		suite.T().Fatalf("Failed to start container due to %q", err.Error())
 	}
 
 	wiremockPort, err := container.MappedPort(ctx, "8080")
 
-	return func(t *testing.T) {
-		if err := container.Terminate(ctx); err != nil {
-			t.Fatalf("Faild to terminate container: %s", err.Error())
-		}
-	}, wiremockPort.Port()
+	suite.Container = container
+
+	suite.AccuweatherBaseUrl = fmt.Sprintf("http://localhost:%s", wiremockPort.Port())
+
+	suite.WiremockClient = wiremock.NewClient(suite.AccuweatherBaseUrl)
+
+	suite.HttpClient = resty.New().
+		EnableTrace().
+		SetQueryParam("apikey", "test-api-key").
+		SetHeader("Accept", "application/json").
+		SetBaseURL(suite.AccuweatherBaseUrl)
+
 }
 
-func TestGetCityInCountry(t *testing.T) {
-	tearDownSuite, wiremockPort := setUpSuite(t)
-	defer tearDownSuite(t)
+func (suite *CitiesTestSuite) TearDownSuite() {
+	if err := suite.Container.Terminate(context.Background()); err != nil {
+		suite.T().Fatalf("Faild to terminate container: %s", err.Error())
+	}
+}
 
-	wiremockUrl := fmt.Sprintf("http://localhost:%s", wiremockPort)
+func (suite *CitiesTestSuite) SetupTest() {
+	err := suite.WiremockClient.Reset()
+	if err != nil {
+		suite.T().Errorf("Unable to reset wiremock %q", err.Error())
+	}
+}
 
-	wiremockClient := wiremock.NewClient(wiremockUrl)
+func (suite *CitiesTestSuite) TestGetCityInCountry() {
 
-	defer func(wiremockClient *wiremock.Client) {
-		err := wiremockClient.Reset()
-		if err != nil {
-			t.Errorf("Unable to reset wiremock %q", err.Error())
-		}
-	}(wiremockClient)
-
-	getCityStubRule := wiremock.Get(wiremock.
-		URLPathEqualTo("/locations/v1/cities/AU/search")).
+	err := suite.WiremockClient.StubFor(wiremock.Get(wiremock.URLPathEqualTo("/locations/v1/cities/AU/search")).
 		WithQueryParam("q", wiremock.EqualTo("sydney")).
 		WithQueryParam("offset", wiremock.EqualTo("1")).
 		WithQueryParam("apikey", wiremock.EqualTo("test-api-key")).
 		WillReturnJSON(
 			[]map[string]interface{}{{"Key": "123", "Name": "Sydney"}}, map[string]string{"Content-Type": "application/json"}, 200,
-		)
+		))
 
-	if err := wiremockClient.StubFor(getCityStubRule.AtPriority(1)); err != nil {
-		t.Errorf("Failed to configure wiremock stub due to %q", err)
+	if err != nil {
+		suite.T().Errorf("Failed to configure wiremock stub due to %q", err.Error())
 		return
 	}
 
-	client := resty.New().
-		EnableTrace().
-		SetQueryParam("apikey", "test-api-key").
-		SetHeader("Accept", "application/json").
-		SetBaseURL(wiremockUrl)
+	country, httpError := upstream.GetCityInCountry(suite.HttpClient, "AU", "sydney")
 
-	country, err := upstream.GetCityInCountry(client, "AU", "sydney")
-
-	if err != nil {
-		t.Errorf("Get Countries Failed with error %s", err.Error())
+	if httpError != nil {
+		suite.T().Errorf("Get Countries Failed with error %s", httpError.Error())
 	} else if country.Key != "123" && country.Name != "Sydney" {
-		t.Errorf("Expected country with Key 123 instead Got (%s,%s)", country.Key, country.Name)
+		suite.T().Errorf("Expected country with Key 123 instead Got (%s,%s)", country.Key, country.Name)
 	}
+}
+
+func TestCalculatorTestSuite(t *testing.T) {
+	suite.Run(t, new(CitiesTestSuite))
 }
