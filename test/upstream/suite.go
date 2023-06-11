@@ -10,7 +10,7 @@ import (
 	"github.com/walkerus/go-wiremock"
 )
 
-type CitiesTestSuite struct {
+type WiremockTestSuite struct {
 	suite.Suite
 	AccuweatherBaseUrl string
 	Container          testcontainers.Container
@@ -18,7 +18,7 @@ type CitiesTestSuite struct {
 	HttpClient         *resty.Client
 }
 
-func (suite *CitiesTestSuite) SetupSuite() {
+func (suite *WiremockTestSuite) SetupSuite() {
 	ctx := context.Background()
 
 	containerRequest := testcontainers.ContainerRequest{
@@ -49,13 +49,13 @@ func (suite *CitiesTestSuite) SetupSuite() {
 
 }
 
-func (suite *CitiesTestSuite) TearDownSuite() {
+func (suite *WiremockTestSuite) TearDownSuite() {
 	if err := suite.Container.Terminate(context.Background()); err != nil {
 		suite.T().Fatalf("Faild to terminate container: %s", err.Error())
 	}
 }
 
-func (suite *CitiesTestSuite) SetupTest() {
+func (suite *WiremockTestSuite) SetupTest() {
 	err := suite.WiremockClient.Reset()
 	if err != nil {
 		suite.T().Errorf("Unable to reset wiremock %q", err.Error())
