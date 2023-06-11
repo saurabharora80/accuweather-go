@@ -10,18 +10,25 @@ type City struct {
 	Name string `json:"EnglishName"`
 }
 
-func GetCityInCountry(client *resty.Client, countryCode string, city string) (City, error) {
-	resp, err := client.R().
+func GetCityInCountry(client *resty.Client, countryCode string, city string, citiesChan chan City, errorsChan chan error) {
+	resp, httpError := client.R().
 		SetPathParam("countryCode", countryCode).
 		SetQueryParam("q", city).
 		SetQueryParam("offset", "1").
 		Get("/locations/v1/cities/{countryCode}/search")
 
-	if err == nil && resp.StatusCode() == 200 {
+	if resp != nil && resp.StatusCode() == 200 {
 		var cities []City
 		err := json.Unmarshal(resp.Body(), &cities)
-		return cities[0], err
+		if err != nil {
+			errorsChan <- err
+			return
+		}
+		citiesChan <- cities[0]
+		return
+	} else if resp != nil && resp.StatusCode() == 404 {
+		citiesChan <- City{}
+		return
 	}
-
-	return City{}, err
+	errorsChan <- httpError
 }
