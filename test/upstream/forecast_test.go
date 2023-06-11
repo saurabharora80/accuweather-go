@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func (suite *WiremockTestSuite) TestGetCityWeatherForecast() {
+func (suite *ForecastTestSuite) TestGetCityWeatherForecast() {
 
 	err := suite.WiremockClient.StubFor(wiremock.Get(wiremock.URLPathEqualTo("/forecasts/v1/daily/1day/123")).
 		WithQueryParam("metric", wiremock.EqualTo("true")).
@@ -49,6 +49,21 @@ func (suite *WiremockTestSuite) TestGetCityWeatherForecast() {
 	}
 }
 
+func (suite *ForecastTestSuite) TestGetCityWeatherForecastNotFound() {
+
+	forecasts := make(chan upstream.Forecast)
+	errors := make(chan error)
+
+	go upstream.GetCityForecast(suite.HttpClient, "123", 1, forecasts, errors)
+
+	select {
+	case city := <-forecasts:
+		assert.Equal(suite.T(), upstream.Forecast{}, city)
+	case err := <-errors:
+		assert.Fail(suite.T(), "Unable to get Forecast because of %s", err.Error())
+	}
+}
+
 func TestForecastSuite(t *testing.T) {
-	suite.Run(t, new(WiremockTestSuite))
+	suite.Run(t, new(ForecastTestSuite))
 }

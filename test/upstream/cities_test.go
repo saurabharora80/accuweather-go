@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func (suite *WiremockTestSuite) TestGetCityInCountry() {
+func (suite *CityTestSuite) TestGetCityInCountry() {
 
 	err := suite.WiremockClient.StubFor(wiremock.Get(wiremock.URLPathEqualTo("/locations/v1/cities/AU/search")).
 		WithQueryParam("q", wiremock.EqualTo("sydney")).
@@ -37,7 +37,7 @@ func (suite *WiremockTestSuite) TestGetCityInCountry() {
 	}
 }
 
-func (suite *WiremockTestSuite) TestGetCityInCountryNotFound() {
+func (suite *CityTestSuite) TestGetCityInCountryNotFound() {
 	cities := make(chan upstream.City)
 	errors := make(chan error)
 
@@ -51,7 +51,7 @@ func (suite *WiremockTestSuite) TestGetCityInCountryNotFound() {
 	}
 }
 
-func (suite *WiremockTestSuite) TestGetCityInCountryFailed() {
+func (suite *CityTestSuite) TestGetCityInCountryFailed() {
 	invalidStatusCodes := []int64{403, 500, 501, 503}
 
 	for _, invalidStatusCode := range invalidStatusCodes {
@@ -77,7 +77,7 @@ func (suite *WiremockTestSuite) TestGetCityInCountryFailed() {
 	}
 }
 
-func (suite *WiremockTestSuite) TestGetCityInCountryJsonError() {
+func (suite *CityTestSuite) TestGetCityInCountryJsonError() {
 
 	err := suite.WiremockClient.StubFor(wiremock.Get(wiremock.URLPathEqualTo("/locations/v1/cities/AU/search")).
 		WithQueryParam("q", wiremock.EqualTo("sydney")).
@@ -106,5 +106,5 @@ func (suite *WiremockTestSuite) TestGetCityInCountryJsonError() {
 }
 
 func TestCitiesSuite(t *testing.T) {
-	suite.Run(t, new(WiremockTestSuite))
+	suite.Run(t, new(CityTestSuite))
 }

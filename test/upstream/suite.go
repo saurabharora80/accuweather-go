@@ -18,6 +18,14 @@ type WiremockTestSuite struct {
 	HttpClient         *resty.Client
 }
 
+type CityTestSuite struct {
+	WiremockTestSuite
+}
+
+type ForecastTestSuite struct {
+	WiremockTestSuite
+}
+
 func (suite *WiremockTestSuite) SetupSuite() {
 	ctx := context.Background()
 
