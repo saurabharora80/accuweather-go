@@ -1,6 +1,7 @@
 package upstream
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/walkerus/go-wiremock"
@@ -61,6 +62,31 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecastNotFound() {
 		assert.Equal(suite.T(), upstream.Forecast{}, city)
 	case err := <-errors:
 		assert.Fail(suite.T(), "Unable to get Forecast because of %s", err.Error())
+	}
+}
+
+func (suite *ForecastTestSuite) TestGetCityWeatherForecastFailed() {
+	invalidStatusCodes := []int64{403, 500, 501, 503}
+
+	for _, invalidStatusCode := range invalidStatusCodes {
+		_ = suite.WiremockClient.StubFor(wiremock.Get(wiremock.URLPathEqualTo("/forecasts/v1/daily/1day/123")).
+			WithQueryParam("metric", wiremock.EqualTo("true")).
+			WithQueryParam("apikey", wiremock.EqualTo("test-api-key")).
+			WillReturnJSON(
+				[]map[string]interface{}{{}}, map[string]string{"Content-Type": "application/json"}, invalidStatusCode,
+			))
+
+		forecasts := make(chan upstream.Forecast)
+		errors := make(chan error)
+
+		go upstream.GetCityForecast(suite.HttpClient, "123", 1, forecasts, errors)
+
+		select {
+		case _ = <-forecasts:
+			assert.Fail(suite.T(), "Shouldn't return forecast")
+		case err := <-errors:
+			assert.Equal(suite.T(), fmt.Sprintf("GET /forecasts/v1/daily/1day/123 failed with %d => [{}]", invalidStatusCode), err.Error())
+		}
 	}
 }
 
