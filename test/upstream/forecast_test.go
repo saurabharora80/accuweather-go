@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/walkerus/go-wiremock"
+	"org.example/hello/src/domain"
 	"org.example/hello/src/upstream"
 	"testing"
 )
@@ -30,15 +31,17 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecast() {
 		return
 	}
 
-	forecasts := make(chan upstream.Forecast)
+	forecasts := make(chan domain.Forecast)
 	errors := make(chan error)
 
-	go upstream.GetCityForecast(suite.HttpClient, "123", 1, forecasts, errors)
+	connector := upstream.NewForecastConnector(suite.HttpClient, forecasts, errors)
+
+	go connector.GetCityForecast("123", 1)
 
 	select {
 	case city := <-forecasts:
 		assert.Equal(suite.T(),
-			upstream.Forecast{
+			domain.Forecast{
 				MinimumTemp: 9.0,
 				MaximumTemp: 21.0,
 				TempUnit:    "C",
@@ -52,14 +55,16 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecast() {
 
 func (suite *ForecastTestSuite) TestGetCityWeatherForecastNotFound() {
 
-	forecasts := make(chan upstream.Forecast)
+	forecasts := make(chan domain.Forecast)
 	errors := make(chan error)
 
-	go upstream.GetCityForecast(suite.HttpClient, "123", 1, forecasts, errors)
+	connector := upstream.NewForecastConnector(suite.HttpClient, forecasts, errors)
+
+	go connector.GetCityForecast("123", 1)
 
 	select {
 	case city := <-forecasts:
-		assert.Equal(suite.T(), upstream.Forecast{}, city)
+		assert.Equal(suite.T(), domain.Forecast{}, city)
 	case err := <-errors:
 		assert.Fail(suite.T(), "Unable to get Forecast because of %s", err.Error())
 	}
@@ -76,16 +81,18 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecastFailed() {
 				[]map[string]interface{}{{}}, map[string]string{"Content-Type": "application/json"}, invalidStatusCode,
 			))
 
-		forecasts := make(chan upstream.Forecast)
+		forecasts := make(chan domain.Forecast)
 		errors := make(chan error)
 
-		go upstream.GetCityForecast(suite.HttpClient, "123", 1, forecasts, errors)
+		connector := upstream.NewForecastConnector(suite.HttpClient, forecasts, errors)
+
+		go connector.GetCityForecast("123", 1)
 
 		select {
 		case _ = <-forecasts:
 			assert.Fail(suite.T(), "Shouldn't return forecast")
 		case err := <-errors:
-			assert.Equal(suite.T(), fmt.Sprintf("GET /forecasts/v1/daily/1day/123 failed with %d => [{}]", invalidStatusCode), err.Error())
+			assert.Equal(suite.T(), fmt.Sprintf("GET /forecasts/v1/daily/1day/123?metric=true failed with %d => [{}]", invalidStatusCode), err.Error())
 		}
 	}
 }

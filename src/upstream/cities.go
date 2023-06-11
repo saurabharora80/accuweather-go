@@ -5,38 +5,44 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"net/http"
+	"org.example/hello/src/domain"
 )
 
-type City struct {
-	Key  string `json:"Key"`
-	Name string `json:"EnglishName"`
+type CityConnector struct {
+	Client     *resty.Client
+	CitiesChan chan<- domain.City
+	ErrorsChan chan<- error
 }
 
-func GetCityInCountry(client *resty.Client, countryCode string, city string, citiesChan chan<- City, errorsChan chan<- error) {
-	resp, httpError := client.R().
+func NewCityConnector(client *resty.Client, citiesChan chan<- domain.City, errorsChan chan<- error) *CityConnector {
+	return &CityConnector{Client: client, CitiesChan: citiesChan, ErrorsChan: errorsChan}
+}
+
+func (c *CityConnector) GetCityInCountry(countryCode string, city string) {
+	resp, httpError := c.Client.R().
 		SetPathParam("countryCode", countryCode).
 		SetQueryParam("q", city).
 		SetQueryParam("offset", "1").
 		Get("/locations/v1/cities/{countryCode}/search")
 
 	if httpError != nil {
-		errorsChan <- httpError
+		c.ErrorsChan <- httpError
 		return
 	}
 
 	switch resp.StatusCode() {
 	case http.StatusOK:
-		var cities []City
+		var cities []domain.City
 		err := json.Unmarshal(resp.Body(), &cities)
 		if err != nil {
-			errorsChan <- err
+			c.ErrorsChan <- err
 			return
 		}
-		citiesChan <- cities[0]
+		c.CitiesChan <- cities[0]
 	case http.StatusNotFound:
-		citiesChan <- City{}
+		c.CitiesChan <- domain.City{}
 	default:
-		errorsChan <- &HttpError{Method: "GET",
+		c.ErrorsChan <- &domain.HttpError{Method: "GET",
 			Path:       fmt.Sprintf("/locations/v1/cities/%s/search?q=%s", countryCode, city),
 			StatusCode: resp.StatusCode(),
 			Details:    resp.Body()}

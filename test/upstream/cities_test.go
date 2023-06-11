@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/walkerus/go-wiremock"
+	"org.example/hello/src/domain"
 	"org.example/hello/src/upstream"
 	"testing"
 )
@@ -24,28 +25,32 @@ func (suite *CityTestSuite) TestGetCityInCountry() {
 		return
 	}
 
-	cities := make(chan upstream.City)
+	cities := make(chan domain.City)
 	errors := make(chan error)
 
-	go upstream.GetCityInCountry(suite.HttpClient, "AU", "sydney", cities, errors)
+	connector := upstream.NewCityConnector(suite.HttpClient, cities, errors)
+
+	go connector.GetCityInCountry("AU", "sydney")
 
 	select {
 	case city := <-cities:
-		assert.Equal(suite.T(), upstream.City{Key: "123", Name: "Sydney"}, city)
+		assert.Equal(suite.T(), domain.City{Key: "123", Name: "Sydney"}, city)
 	case err := <-errors:
 		assert.Fail(suite.T(), "Unable to get City because of %s", err.Error())
 	}
 }
 
 func (suite *CityTestSuite) TestGetCityInCountryNotFound() {
-	cities := make(chan upstream.City)
+	cities := make(chan domain.City)
 	errors := make(chan error)
 
-	go upstream.GetCityInCountry(suite.HttpClient, "AU", "melbourne", cities, errors)
+	connector := upstream.NewCityConnector(suite.HttpClient, cities, errors)
+
+	go connector.GetCityInCountry("AU", "melbourne")
 
 	select {
 	case city := <-cities:
-		assert.Equal(suite.T(), upstream.City{}, city)
+		assert.Equal(suite.T(), domain.City{}, city)
 	case err := <-errors:
 		assert.Fail(suite.T(), "Unable to get City because of %s", err.Error())
 	}
@@ -63,10 +68,12 @@ func (suite *CityTestSuite) TestGetCityInCountryFailed() {
 				[]map[string]interface{}{{}}, map[string]string{"Content-Type": "application/json"}, invalidStatusCode,
 			))
 
-		cities := make(chan upstream.City)
+		cities := make(chan domain.City)
 		errors := make(chan error)
 
-		go upstream.GetCityInCountry(suite.HttpClient, "AU", "melbourne", cities, errors)
+		connector := upstream.NewCityConnector(suite.HttpClient, cities, errors)
+
+		go connector.GetCityInCountry("AU", "melbourne")
 
 		select {
 		case _ = <-cities:
@@ -92,10 +99,12 @@ func (suite *CityTestSuite) TestGetCityInCountryJsonError() {
 		return
 	}
 
-	cities := make(chan upstream.City)
+	cities := make(chan domain.City)
 	errors := make(chan error)
 
-	go upstream.GetCityInCountry(suite.HttpClient, "AU", "sydney", cities, errors)
+	connector := upstream.NewCityConnector(suite.HttpClient, cities, errors)
+
+	go connector.GetCityInCountry("AU", "sydney")
 
 	select {
 	case _ = <-cities:
