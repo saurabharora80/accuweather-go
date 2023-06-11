@@ -28,9 +28,9 @@ func (suite *CityTestSuite) TestGetCityInCountry() {
 	cities := make(chan domain.City)
 	errors := make(chan error)
 
-	connector := upstream.NewCityConnector(suite.HttpClient, cities, errors)
+	connector := upstream.NewCityConnector(suite.HttpClient)
 
-	go connector.GetCityInCountry("AU", "sydney")
+	go connector.GetCityInCountry("AU", "sydney", cities, errors)
 
 	select {
 	case city := <-cities:
@@ -44,9 +44,9 @@ func (suite *CityTestSuite) TestGetCityInCountryNotFound() {
 	cities := make(chan domain.City)
 	errors := make(chan error)
 
-	connector := upstream.NewCityConnector(suite.HttpClient, cities, errors)
+	connector := upstream.NewCityConnector(suite.HttpClient)
 
-	go connector.GetCityInCountry("AU", "melbourne")
+	go connector.GetCityInCountry("AU", "melbourne", cities, errors)
 
 	select {
 	case city := <-cities:
@@ -71,9 +71,9 @@ func (suite *CityTestSuite) TestGetCityInCountryFailed() {
 		cities := make(chan domain.City)
 		errors := make(chan error)
 
-		connector := upstream.NewCityConnector(suite.HttpClient, cities, errors)
+		connector := upstream.NewCityConnector(suite.HttpClient)
 
-		go connector.GetCityInCountry("AU", "melbourne")
+		go connector.GetCityInCountry("AU", "melbourne", cities, errors)
 
 		select {
 		case _ = <-cities:
@@ -102,9 +102,9 @@ func (suite *CityTestSuite) TestGetCityInCountryJsonError() {
 	cities := make(chan domain.City)
 	errors := make(chan error)
 
-	connector := upstream.NewCityConnector(suite.HttpClient, cities, errors)
+	connector := upstream.NewCityConnector(suite.HttpClient)
 
-	go connector.GetCityInCountry("AU", "sydney")
+	go connector.GetCityInCountry("AU", "sydney", cities, errors)
 
 	select {
 	case _ = <-cities:

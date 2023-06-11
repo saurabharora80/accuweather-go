@@ -8,24 +8,26 @@ import (
 	"org.example/hello/src/domain"
 )
 
+type ForecastConnectorInterface interface {
+	GetCityForecast(locationKey string, daysOfForecast int, forecastChan chan domain.Forecast, errorsChan chan error)
+}
+
 type ForecastConnector struct {
-	Client       *resty.Client
-	ForecastChan chan<- domain.Forecast
-	ErrorsChan   chan<- error
+	Client *resty.Client
 }
 
-func NewForecastConnector(client *resty.Client, forecastChan chan<- domain.Forecast, errorsChan chan<- error) *ForecastConnector {
-	return &ForecastConnector{Client: client, ForecastChan: forecastChan, ErrorsChan: errorsChan}
+func NewForecastConnector(client *resty.Client) *ForecastConnector {
+	return &ForecastConnector{Client: client}
 }
 
-func (c *ForecastConnector) GetCityForecast(locationKey string, daysOfForecast int) {
+func (c *ForecastConnector) GetCityForecast(locationKey string, daysOfForecast int, forecastChan chan domain.Forecast, errorsChan chan error) {
 	resp, httpError := c.Client.R().
 		SetPathParam("locationKey", locationKey).
 		SetQueryParam("offset", "1").
 		Get(fmt.Sprintf("/forecasts/v1/daily/%dday/{locationKey}?metric=true", daysOfForecast))
 
 	if httpError != nil {
-		c.ErrorsChan <- httpError
+		errorsChan <- httpError
 		return
 	}
 
@@ -34,14 +36,14 @@ func (c *ForecastConnector) GetCityForecast(locationKey string, daysOfForecast i
 		var forecasts []domain.Forecast
 		err := json.Unmarshal(resp.Body(), &forecasts)
 		if err != nil {
-			c.ErrorsChan <- err
+			errorsChan <- err
 			return
 		}
-		c.ForecastChan <- forecasts[0]
+		forecastChan <- forecasts[0]
 	case http.StatusNotFound:
-		c.ForecastChan <- domain.Forecast{}
+		forecastChan <- domain.Forecast{}
 	default:
-		c.ErrorsChan <- &domain.HttpError{Method: "GET",
+		errorsChan <- &domain.HttpError{Method: "GET",
 			Path:       fmt.Sprintf("/forecasts/v1/daily/%dday/%s?metric=true", daysOfForecast, locationKey),
 			StatusCode: resp.StatusCode(),
 			Details:    resp.Body()}

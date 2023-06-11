@@ -8,17 +8,19 @@ import (
 	"org.example/hello/src/domain"
 )
 
+type CityConnectorInterface interface {
+	GetCityInCountry(countryCode string, city string, citiesChan chan domain.City, errorsChan chan error)
+}
+
 type CityConnector struct {
-	Client     *resty.Client
-	CitiesChan chan<- domain.City
-	ErrorsChan chan<- error
+	Client *resty.Client
 }
 
-func NewCityConnector(client *resty.Client, citiesChan chan<- domain.City, errorsChan chan<- error) *CityConnector {
-	return &CityConnector{Client: client, CitiesChan: citiesChan, ErrorsChan: errorsChan}
+func NewCityConnector(client *resty.Client) *CityConnector {
+	return &CityConnector{Client: client}
 }
 
-func (c *CityConnector) GetCityInCountry(countryCode string, city string) {
+func (c *CityConnector) GetCityInCountry(countryCode string, city string, citiesChan chan domain.City, errorsChan chan error) {
 	resp, httpError := c.Client.R().
 		SetPathParam("countryCode", countryCode).
 		SetQueryParam("q", city).
@@ -26,7 +28,7 @@ func (c *CityConnector) GetCityInCountry(countryCode string, city string) {
 		Get("/locations/v1/cities/{countryCode}/search")
 
 	if httpError != nil {
-		c.ErrorsChan <- httpError
+		errorsChan <- httpError
 		return
 	}
 
@@ -35,14 +37,14 @@ func (c *CityConnector) GetCityInCountry(countryCode string, city string) {
 		var cities []domain.City
 		err := json.Unmarshal(resp.Body(), &cities)
 		if err != nil {
-			c.ErrorsChan <- err
+			errorsChan <- err
 			return
 		}
-		c.CitiesChan <- cities[0]
+		citiesChan <- cities[0]
 	case http.StatusNotFound:
-		c.CitiesChan <- domain.City{}
+		citiesChan <- domain.City{}
 	default:
-		c.ErrorsChan <- &domain.HttpError{Method: "GET",
+		errorsChan <- &domain.HttpError{Method: "GET",
 			Path:       fmt.Sprintf("/locations/v1/cities/%s/search?q=%s", countryCode, city),
 			StatusCode: resp.StatusCode(),
 			Details:    resp.Body()}

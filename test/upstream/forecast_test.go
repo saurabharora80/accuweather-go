@@ -34,9 +34,9 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecast() {
 	forecasts := make(chan domain.Forecast)
 	errors := make(chan error)
 
-	connector := upstream.NewForecastConnector(suite.HttpClient, forecasts, errors)
+	connector := upstream.NewForecastConnector(suite.HttpClient)
 
-	go connector.GetCityForecast("123", 1)
+	go connector.GetCityForecast("123", 1, forecasts, errors)
 
 	select {
 	case city := <-forecasts:
@@ -58,9 +58,9 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecastNotFound() {
 	forecasts := make(chan domain.Forecast)
 	errors := make(chan error)
 
-	connector := upstream.NewForecastConnector(suite.HttpClient, forecasts, errors)
+	connector := upstream.NewForecastConnector(suite.HttpClient)
 
-	go connector.GetCityForecast("123", 1)
+	go connector.GetCityForecast("123", 1, forecasts, errors)
 
 	select {
 	case city := <-forecasts:
@@ -84,9 +84,9 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecastFailed() {
 		forecasts := make(chan domain.Forecast)
 		errors := make(chan error)
 
-		connector := upstream.NewForecastConnector(suite.HttpClient, forecasts, errors)
+		connector := upstream.NewForecastConnector(suite.HttpClient)
 
-		go connector.GetCityForecast("123", 1)
+		go connector.GetCityForecast("123", 1, forecasts, errors)
 
 		select {
 		case _ = <-forecasts:
