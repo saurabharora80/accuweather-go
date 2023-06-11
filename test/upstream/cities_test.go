@@ -77,6 +77,34 @@ func (suite *CitiesTestSuite) TestGetCityInCountryFailed() {
 	}
 }
 
+func (suite *CitiesTestSuite) TestGetCityInCountryJsonError() {
+
+	err := suite.WiremockClient.StubFor(wiremock.Get(wiremock.URLPathEqualTo("/locations/v1/cities/AU/search")).
+		WithQueryParam("q", wiremock.EqualTo("sydney")).
+		WithQueryParam("offset", wiremock.EqualTo("1")).
+		WithQueryParam("apikey", wiremock.EqualTo("test-api-key")).
+		WillReturnJSON(
+			[]map[string]interface{}{{"Key": 123, "EnglishName": "Sydney"}}, map[string]string{"Content-Type": "application/json"}, 200,
+		))
+
+	if err != nil {
+		assert.Fail(suite.T(), "Failed to configure wiremock stub due to %s", err.Error())
+		return
+	}
+
+	cities := make(chan upstream.City)
+	errors := make(chan error)
+
+	go upstream.GetCityInCountry(suite.HttpClient, "AU", "sydney", cities, errors)
+
+	select {
+	case _ = <-cities:
+		assert.Fail(suite.T(), "Shouldn't return city")
+	case err := <-errors:
+		assert.Equal(suite.T(), "json: cannot unmarshal number into Go struct field City.Key of type string", err.Error())
+	}
+}
+
 func TestCalculatorTestSuite(t *testing.T) {
 	suite.Run(t, new(CitiesTestSuite))
 }
