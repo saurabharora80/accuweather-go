@@ -1,6 +1,7 @@
 package upstream
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/walkerus/go-wiremock"
@@ -36,7 +37,7 @@ func (suite *CitiesTestSuite) TestGetCityInCountry() {
 	}
 }
 
-func (suite *CitiesTestSuite) TestGetCityInCountryFailed() {
+func (suite *CitiesTestSuite) TestGetCityInCountryNotFound() {
 	cities := make(chan upstream.City)
 	errors := make(chan error)
 
@@ -47,6 +48,32 @@ func (suite *CitiesTestSuite) TestGetCityInCountryFailed() {
 		assert.Equal(suite.T(), upstream.City{}, city)
 	case err := <-errors:
 		assert.Fail(suite.T(), "Unable to get City because of %s", err.Error())
+	}
+}
+
+func (suite *CitiesTestSuite) TestGetCityInCountryFailed() {
+	invalidStatusCodes := []int64{403, 500, 501, 503}
+
+	for _, invalidStatusCode := range invalidStatusCodes {
+		_ = suite.WiremockClient.StubFor(wiremock.Get(wiremock.URLPathEqualTo("/locations/v1/cities/AU/search")).
+			WithQueryParam("q", wiremock.EqualTo("melbourne")).
+			WithQueryParam("offset", wiremock.EqualTo("1")).
+			WithQueryParam("apikey", wiremock.EqualTo("test-api-key")).
+			WillReturnJSON(
+				[]map[string]interface{}{{}}, map[string]string{"Content-Type": "application/json"}, invalidStatusCode,
+			))
+
+		cities := make(chan upstream.City)
+		errors := make(chan error)
+
+		go upstream.GetCityInCountry(suite.HttpClient, "AU", "melbourne", cities, errors)
+
+		select {
+		case _ = <-cities:
+			assert.Fail(suite.T(), "Shouldn't return city")
+		case err := <-errors:
+			assert.Equal(suite.T(), fmt.Sprintf("GET /locations/v1/cities/AU/search?q=melbourne failed with %d => [{}]", invalidStatusCode), err.Error())
+		}
 	}
 }
 

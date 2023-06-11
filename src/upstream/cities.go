@@ -2,6 +2,7 @@ package upstream
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -17,18 +18,23 @@ func GetCityInCountry(client *resty.Client, countryCode string, city string, cit
 		SetQueryParam("offset", "1").
 		Get("/locations/v1/cities/{countryCode}/search")
 
-	if resp != nil && resp.StatusCode() == 200 {
-		var cities []City
-		err := json.Unmarshal(resp.Body(), &cities)
-		if err != nil {
-			errorsChan <- err
-			return
+	if resp != nil {
+		if resp.StatusCode() == 200 {
+			var cities []City
+			err := json.Unmarshal(resp.Body(), &cities)
+			if err != nil {
+				errorsChan <- err
+			}
+			citiesChan <- cities[0]
+		} else if resp.StatusCode() == 404 {
+			citiesChan <- City{}
+		} else {
+			errorsChan <- &HttpError{Method: "GET",
+				Path:       fmt.Sprintf("/locations/v1/cities/%s/search?q=%s", countryCode, city),
+				StatusCode: resp.StatusCode(),
+				Details:    resp.Body()}
 		}
-		citiesChan <- cities[0]
-		return
-	} else if resp != nil && resp.StatusCode() == 404 {
-		citiesChan <- City{}
-		return
 	}
+
 	errorsChan <- httpError
 }
