@@ -37,7 +37,7 @@ func GetConfig() (*Config, error) {
 			ConfigInstanceError = err
 		}
 
-		viper.BindPFlags(pflag.CommandLine)
+		_ = viper.BindPFlags(pflag.CommandLine)
 		viper.AutomaticEnv()
 
 		config := Config{}
