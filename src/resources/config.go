@@ -1,4 +1,4 @@
-package main
+package resources
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ type Config struct {
 	} `mapstructure:"upstream"`
 }
 
-func config() (Config, error) {
+func GetConfig() (Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./resources")

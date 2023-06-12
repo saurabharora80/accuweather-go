@@ -6,6 +6,9 @@ import (
 	"github.com/go-resty/resty/v2"
 	"net/http"
 	"org.example/hello/src/domain"
+	"org.example/hello/src/resources"
+	"sync"
+	"time"
 )
 
 type ForecastConnectorInterface interface {
@@ -14,6 +17,33 @@ type ForecastConnectorInterface interface {
 
 type ForecastConnector struct {
 	Client *resty.Client
+}
+
+var (
+	ForecastConnectorInstance      *ForecastConnector
+	ForecastConnectorInstanceError error
+	onceForForecastInstance        sync.Once
+)
+
+func GetForecastConnectorInstance() (*ForecastConnector, error) {
+	onceForForecastInstance.Do(func() {
+		config, configErr := resources.GetConfig()
+
+		ForecastConnectorInstanceError = configErr
+
+		client := resty.New().
+			EnableTrace().
+			SetTransport(&http.Transport{
+				MaxIdleConns:    config.Upstream.MaxIdleConnections,
+				IdleConnTimeout: config.Upstream.IdleConnectionTimeoutSeconds * time.Second}).
+			SetQueryParam("apikey", config.Upstream.Key).
+			SetHeader("Accept", "application/json").
+			SetBaseURL(config.Upstream.Host)
+
+		ForecastConnectorInstance = NewForecastConnector(client)
+	})
+
+	return ForecastConnectorInstance, ForecastConnectorInstanceError
 }
 
 func NewForecastConnector(client *resty.Client) *ForecastConnector {

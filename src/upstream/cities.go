@@ -6,6 +6,9 @@ import (
 	"github.com/go-resty/resty/v2"
 	"net/http"
 	"org.example/hello/src/domain"
+	"org.example/hello/src/resources"
+	"sync"
+	"time"
 )
 
 type CityConnectorInterface interface {
@@ -14,6 +17,34 @@ type CityConnectorInterface interface {
 
 type CityConnector struct {
 	Client *resty.Client
+}
+
+var (
+	CityConnectorInstance      *CityConnector
+	CityConnectorInstanceError error
+	onceForCityConnector       sync.Once
+)
+
+func GetCityConnectorInstance() (*CityConnector, error) {
+	onceForCityConnector.Do(func() {
+		config, configErr := resources.GetConfig()
+
+		CityConnectorInstanceError = configErr
+
+		client := resty.New().
+			EnableTrace().
+			SetTransport(&http.Transport{
+				MaxIdleConns:    config.Upstream.MaxIdleConnections,
+				IdleConnTimeout: config.Upstream.IdleConnectionTimeoutSeconds * time.Second}).
+			SetQueryParam("apikey", config.Upstream.Key).
+			SetHeader("Accept", "application/json").
+			SetBaseURL(config.Upstream.Host)
+
+		CityConnectorInstance = NewCityConnector(client)
+	})
+
+	return CityConnectorInstance, CityConnectorInstanceError
+
 }
 
 func NewCityConnector(client *resty.Client) *CityConnector {

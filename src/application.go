@@ -2,43 +2,23 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-resty/resty/v2"
-	"net/http"
-	"org.example/hello/src/upstream"
-	"time"
+	"org.example/hello/src/service"
 )
 
 func main() {
 
-	config, configErr := config()
+	weatherService, errors := service.GetWeatherInstance()
 
-	if configErr != nil {
-		fmt.Println(configErr)
+	if errors != nil {
 		return
 	}
 
-	client := resty.New().
-		EnableTrace().
-		SetTransport(&http.Transport{
-			MaxIdleConns:    config.Upstream.MaxIdleConnections,
-			IdleConnTimeout: config.Upstream.IdleConnectionTimeoutSeconds * time.Second}).
-		SetQueryParam("apikey", config.Upstream.Key).
-		SetHeader("Accept", "application/json").
-		SetBaseURL(config.Upstream.Host)
-
-	regions, err := upstream.GetRegions(client)
+	cityForecast, err := weatherService.GetCityForecast("AU", "Sydney", 5)
 
 	if err == nil {
-		for _, region := range regions {
-			countries, err := upstream.GetCountries(client, region.ID)
-			if err == nil {
-				for _, country := range countries {
-					fmt.Printf("%v -> %v\n", region.ID, country.ID)
-				}
-			}
-		}
+		fmt.Println(cityForecast)
 	} else {
-		fmt.Println(err)
+		fmt.Printf("failed to weather forecast: %s", err.Error())
 	}
 
 }
