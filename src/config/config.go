@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"sync"
 	"time"
 )
 
@@ -15,26 +17,42 @@ type Config struct {
 	} `mapstructure:"upstream"`
 }
 
-func GetConfig() (Config, error) {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./resources")
-	err := viper.ReadInConfig()
+var (
+	ConfigInstance      *Config
+	ConfigInstanceError error
+	onceForConfig       sync.Once
+)
 
-	if err != nil {
-		fmt.Printf("Unable to read file %v\n", err)
-		return Config{}, err
-	}
+func GetConfig() (*Config, error) {
+	onceForConfig.Do(func() {
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath("config")
+		viper.AddConfigPath("../config")
 
-	config := Config{}
+		err := viper.ReadInConfig()
 
-	err = viper.Unmarshal(&config)
+		if err != nil {
+			fmt.Printf("Unable to read file %v\n", err)
+			ConfigInstanceError = err
+		}
 
-	if err != nil {
-		fmt.Printf("Unable to Unmarshall file %v\n", err)
-		return Config{}, err
-	} else {
-		return config, err
-	}
+		viper.BindPFlags(pflag.CommandLine)
+		viper.AutomaticEnv()
 
+		config := Config{}
+
+		err = viper.Unmarshal(&config)
+
+		if err != nil {
+			fmt.Printf("Unable to Unmarshall file %v\n", err)
+			ConfigInstanceError = err
+		} else {
+			fmt.Println("==============Application Config================")
+			fmt.Printf("%v\n", config)
+			fmt.Println("===============================================")
+			ConfigInstance = &config
+		}
+	})
+	return ConfigInstance, ConfigInstanceError
 }

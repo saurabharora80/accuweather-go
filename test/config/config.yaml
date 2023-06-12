@@ -1,0 +1,5 @@
+upstream:
+  host: http://localhost:8080
+  max-idle-connections: 10
+  idle-connection-timeout-seconds: 30
+  key: test-api-key

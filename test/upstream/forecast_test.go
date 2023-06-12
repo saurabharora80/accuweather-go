@@ -26,10 +26,7 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecast() {
 			}}, map[string]string{"Content-Type": "application/json"}, 200,
 		))
 
-	if err != nil {
-		assert.Fail(suite.T(), "Failed to configure wiremock stub due to %s", err.Error())
-		return
-	}
+	assert.NoError(suite.T(), err)
 
 	forecasts := make(chan domain.Forecast)
 	errors := make(chan error)

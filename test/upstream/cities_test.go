@@ -20,10 +20,7 @@ func (suite *CityTestSuite) TestGetCityInCountry() {
 			[]map[string]interface{}{{"Key": "123", "EnglishName": "Sydney"}}, map[string]string{"Content-Type": "application/json"}, 200,
 		))
 
-	if err != nil {
-		assert.Fail(suite.T(), "Failed to configure wiremock stub due to %s", err.Error())
-		return
-	}
+	assert.NoError(suite.T(), err)
 
 	cities := make(chan domain.City)
 	errors := make(chan error)
@@ -94,10 +91,7 @@ func (suite *CityTestSuite) TestGetCityInCountryJsonError() {
 			[]map[string]interface{}{{"Key": 123, "EnglishName": "Sydney"}}, map[string]string{"Content-Type": "application/json"}, 200,
 		))
 
-	if err != nil {
-		assert.Fail(suite.T(), "Failed to configure wiremock stub due to %s", err.Error())
-		return
-	}
+	assert.NoError(suite.T(), err)
 
 	cities := make(chan domain.City)
 	errors := make(chan error)

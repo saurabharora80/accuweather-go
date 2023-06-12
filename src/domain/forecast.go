@@ -7,3 +7,7 @@ type Forecast struct {
 	Sunrise     string  `json:"DailyForecasts.Sun.Rise"`
 	Sunset      string  `json:"DailyForecasts.Sun.Set"`
 }
+
+func (f *Forecast) IsEmpty() bool {
+	return f.MinimumTemp == 0 && f.MaximumTemp == 0 && f.TempUnit == "" && f.Sunrise == "" && f.Sunset == ""
+}
