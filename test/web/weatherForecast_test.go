@@ -7,12 +7,14 @@ import (
 	"github.com/walkerus/go-wiremock"
 	"net/http"
 	"net/http/httptest"
-	"org.example/hello/src/web/model"
+	"org.example/hello/src/domain"
+	"os"
 	"testing"
-	"time"
 )
 
 func (suite *WebTestSuite) TestGetWeatherForecast() {
+
+	_ = os.Setenv("ENABLE.RESTY.DEBUG", "true")
 
 	setupCityStub(suite)
 
@@ -28,12 +30,12 @@ func (suite *WebTestSuite) TestGetWeatherForecast() {
 
 	assert.Equal(suite.T(), 200, recorder.Code)
 
-	actualResponse := model.Forecast{}
+	actualResponse := domain.DailyForecast{}
 
 	assert.NoError(suite.T(), json.Unmarshal(recorder.Body.Bytes(), &actualResponse))
 
 	assert.Equal(suite.T(),
-		model.Forecast{MinimumTemp: 9.0, MaximumTemp: 21.0, TempUnit: "C", Sunrise: "2019-05-15T06:44:00+10:00", Sunset: "2019-05-15T17:01:00+10:00"},
+		domain.DailyForecast{MinimumTemp: 8.3, MaximumTemp: 19.3, TempUnit: "C", Sunrise: "2023-06-15T06:54:00+10:00", Sunset: "2023-06-15T16:56:00+10:00"},
 		actualResponse)
 }
 
@@ -49,11 +51,11 @@ func (suite *WebTestSuite) TestGetWeatherForecastCityNotFound() {
 
 	assert.Equal(suite.T(), 404, recorder.Code)
 
-	actualResponse := model.Forecast{}
+	actualResponse := domain.DailyForecast{}
 
 	assert.NoError(suite.T(), json.Unmarshal(recorder.Body.Bytes(), &actualResponse))
 
-	assert.Equal(suite.T(), model.Forecast{}, actualResponse)
+	assert.Equal(suite.T(), domain.DailyForecast{}, actualResponse)
 }
 
 func (suite *WebTestSuite) TestGetWeatherForecastForecastNotFound() {
@@ -70,11 +72,11 @@ func (suite *WebTestSuite) TestGetWeatherForecastForecastNotFound() {
 
 	assert.Equal(suite.T(), 404, recorder.Code)
 
-	actualResponse := model.Forecast{}
+	actualResponse := domain.DailyForecast{}
 
 	assert.NoError(suite.T(), json.Unmarshal(recorder.Body.Bytes(), &actualResponse))
 
-	assert.Equal(suite.T(), model.Forecast{}, actualResponse)
+	assert.Equal(suite.T(), domain.DailyForecast{}, actualResponse)
 }
 
 func (suite *WebTestSuite) TestGetWeatherForecastInvalidNoOfDays() {
@@ -132,12 +134,12 @@ func (suite *WebTestSuite) BenchmarkGetWeatherForecast(b *testing.B) {
 
 		assert.Equal(suite.T(), 200, recorder.Code)
 
-		actualResponse := model.Forecast{}
+		actualResponse := domain.DailyForecast{}
 
 		assert.NoError(suite.T(), json.Unmarshal(recorder.Body.Bytes(), &actualResponse))
 
 		assert.Equal(suite.T(),
-			model.Forecast{MinimumTemp: 9.0, MaximumTemp: 21.0, TempUnit: "C", Sunrise: "2019-05-15T06:44:00+10:00", Sunset: "2019-05-15T17:01:00+10:00"},
+			domain.DailyForecast{MinimumTemp: 9.0, MaximumTemp: 21.0, TempUnit: "C", Sunrise: "2019-05-15T06:44:00+10:00", Sunset: "2019-05-15T17:01:00+10:00"},
 			actualResponse)
 	}
 }
@@ -146,17 +148,7 @@ func setUpForecastStub(suite *WebTestSuite) {
 	forecastRequestErr := suite.WiremockClient.StubFor(wiremock.Get(wiremock.URLPathEqualTo("/forecasts/v1/daily/1day/123")).
 		WithQueryParam("metric", wiremock.EqualTo("true")).
 		WithQueryParam("apikey", wiremock.EqualTo("test-api-key")).
-		WithFixedDelayMilliseconds(100*time.Millisecond).
-		WillReturnJSON(
-			[]map[string]interface{}{{
-				"DailyForecasts.Temperature.Minimum.Value": 9.0,
-				"DailyForecasts.Temperature.Maximum.Value": 21.0,
-				"DailyForecasts.Temperature.Minimum.Unit":  "C",
-				"DailyForecasts.Temperature.Maximum.Unit":  "C",
-				"DailyForecasts.Sun.Rise":                  "2019-05-15T06:44:00+10:00",
-				"DailyForecasts.Sun.Set":                   "2019-05-15T17:01:00+10:00",
-			}}, map[string]string{"Content-Type": "application/json"}, 200,
-		))
+		WillReturnFileContent("upstream_responses/forecast.json", map[string]string{"Content-Type": "application/json"}, 200))
 
 	assert.NoError(suite.T(), forecastRequestErr)
 }
@@ -166,7 +158,6 @@ func setupCityStub(suite *WebTestSuite) {
 		WithQueryParam("q", wiremock.EqualTo("Sydney")).
 		WithQueryParam("offset", wiremock.EqualTo("1")).
 		WithQueryParam("apikey", wiremock.EqualTo("test-api-key")).
-		WithFixedDelayMilliseconds(100*time.Millisecond).
 		WillReturnJSON(
 			[]map[string]interface{}{{"Key": "123", "EnglishName": "Sydney"}}, map[string]string{"Content-Type": "application/json"}, 200,
 		))

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"os"
 	"sync"
 	"time"
 )
@@ -29,6 +30,10 @@ func GetConfig() (*Config, error) {
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("config")
 		viper.AddConfigPath("../config")
+
+		if configPathFromEnv := os.Getenv("CONFIG_PATH"); configPathFromEnv != "" {
+			viper.AddConfigPath(configPathFromEnv)
+		}
 
 		err := viper.ReadInConfig()
 

@@ -25,7 +25,9 @@ var (
 
 func GetCityConnectorInstance() (*CityConnector, error) {
 	onceForCityConnector.Do(func() {
-		CityConnectorInstance = NewCityConnector(NewRestyClient())
+		client, err := NewRestyClient()
+		CityConnectorInstanceError = err
+		CityConnectorInstance = NewCityConnector(client)
 	})
 
 	return CityConnectorInstance, CityConnectorInstanceError

@@ -1,4 +1,4 @@
-package common
+package test
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/walkerus/go-wiremock"
+	"os"
+	"path/filepath"
 )
 
 type WiremockTestSuite struct {
@@ -23,6 +25,9 @@ type WiremockTestSuite struct {
 
 func (suite *WiremockTestSuite) SetupSuite() {
 	ctx := context.Background()
+
+	dir, _ := os.Getwd()
+	testDirectory := filepath.Dir(dir)
 
 	containerRequest := testcontainers.ContainerRequest{
 		Image:        "wiremock/wiremock",
@@ -37,6 +42,10 @@ func (suite *WiremockTestSuite) SetupSuite() {
 		testcontainers.GenericContainerRequest{
 			ContainerRequest: containerRequest,
 			Started:          true})
+
+	assert.NoError(suite.T(), err)
+
+	err = wiremockContainer.CopyDirToContainer(ctx, fmt.Sprintf("%s/resources/upstream_responses", testDirectory), "/home/wiremock/__files/", 700)
 
 	assert.NoError(suite.T(), err)
 

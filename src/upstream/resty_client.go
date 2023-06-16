@@ -9,11 +9,12 @@ import (
 	"time"
 )
 
-func NewRestyClient() *resty.Client {
+func NewRestyClient() (*resty.Client, error) {
 	c, err := config.GetConfig()
 
-	ForecastConnectorInstanceError = err
-
+	if err != nil {
+		return nil, err
+	}
 	parseBool, boolParseErr := strconv.ParseBool(os.Getenv("ENABLE.RESTY.DEBUG"))
 
 	if boolParseErr != nil {
@@ -28,5 +29,5 @@ func NewRestyClient() *resty.Client {
 			IdleConnTimeout: c.Upstream.IdleConnectionTimeoutSeconds * time.Second}).
 		SetQueryParam("apikey", c.Upstream.Key).
 		SetHeader("Accept", "application/json").
-		SetBaseURL(c.Upstream.Host)
+		SetBaseURL(c.Upstream.Host), nil
 }

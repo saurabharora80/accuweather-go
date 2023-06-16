@@ -4,12 +4,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"org.example/hello/src/web"
-	"org.example/hello/test/common"
+	"org.example/hello/test"
 	"os"
 )
 
 type WebTestSuite struct {
-	common.WiremockTestSuite
+	test.WiremockTestSuite
 	router *gin.Engine
 }
 

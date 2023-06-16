@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"org.example/hello/src/service"
-	"org.example/hello/src/web/model"
 	"strconv"
 )
 
@@ -46,11 +45,5 @@ func getWeather(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, model.Forecast{
-		MinimumTemp: cityForecast.MinimumTemp,
-		MaximumTemp: cityForecast.MaximumTemp,
-		TempUnit:    cityForecast.TempUnit,
-		Sunset:      cityForecast.Sunset,
-		Sunrise:     cityForecast.Sunrise,
-	})
+	c.JSON(200, cityForecast)
 }

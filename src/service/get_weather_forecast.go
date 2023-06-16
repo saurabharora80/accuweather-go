@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"org.example/hello/src/domain"
 	"org.example/hello/src/upstream"
+	"org.example/hello/src/upstream/model"
 	"sync"
 )
 
@@ -46,9 +47,9 @@ func NewWeatherService(cityConnector upstream.CityConnectorInterface,
 	return &WeatherService{CityConnector: cityConnector, ForecastConnector: forecastConnector}
 }
 
-func (s *WeatherService) GetCityForecast(countryCode string, city string, daysOfForecast int) (domain.Forecast, error) {
+func (s *WeatherService) GetCityForecast(countryCode string, city string, daysOfForecast int) (domain.DailyForecast, error) {
 	citiesChan := make(chan domain.City)
-	forecastChan := make(chan domain.Forecast)
+	forecastChan := make(chan model.Forecast)
 	errorsChan := make(chan error)
 
 	go s.CityConnector.GetCityInCountry(countryCode, city, citiesChan, errorsChan)
@@ -58,11 +59,18 @@ func (s *WeatherService) GetCityForecast(countryCode string, city string, daysOf
 		go s.ForecastConnector.GetCityForecast(city.Key, daysOfForecast, forecastChan, errorsChan)
 		select {
 		case forecast := <-forecastChan:
-			return forecast, nil
+			return from(forecast.DailyForecasts), nil
 		case err := <-errorsChan:
-			return domain.Forecast{}, err
+			return domain.DailyForecast{}, err
 		}
 	case err := <-errorsChan:
-		return domain.Forecast{}, err
+		return domain.DailyForecast{}, err
 	}
+}
+
+func from(forecasts []model.DailyForecast) domain.DailyForecast {
+	if len(forecasts) == 0 {
+		return domain.DailyForecast{}
+	}
+	return forecasts[0].To()
 }

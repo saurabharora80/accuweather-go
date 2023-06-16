@@ -5,8 +5,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/walkerus/go-wiremock"
-	"org.example/hello/src/domain"
 	"org.example/hello/src/upstream"
+	"org.example/hello/src/upstream/model"
 	"testing"
 )
 
@@ -15,20 +15,11 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecast() {
 	err := suite.WiremockClient.StubFor(wiremock.Get(wiremock.URLPathEqualTo("/forecasts/v1/daily/1day/123")).
 		WithQueryParam("metric", wiremock.EqualTo("true")).
 		WithQueryParam("apikey", wiremock.EqualTo("test-api-key")).
-		WillReturnJSON(
-			[]map[string]interface{}{{
-				"DailyForecasts.Temperature.Minimum.Value": 9.0,
-				"DailyForecasts.Temperature.Maximum.Value": 21.0,
-				"DailyForecasts.Temperature.Minimum.Unit":  "C",
-				"DailyForecasts.Temperature.Maximum.Unit":  "C",
-				"DailyForecasts.Sun.Rise":                  "2019-05-15T06:44:00+10:00",
-				"DailyForecasts.Sun.Set":                   "2019-05-15T17:01:00+10:00",
-			}}, map[string]string{"Content-Type": "application/json"}, 200,
-		))
+		WillReturnFileContent("upstream_responses/forecast.json", map[string]string{"Content-Type": "application/json"}, 200))
 
 	assert.NoError(suite.T(), err)
 
-	forecasts := make(chan domain.Forecast)
+	forecasts := make(chan model.Forecast)
 	errors := make(chan error)
 
 	connector := upstream.NewForecastConnector(suite.HttpClient)
@@ -36,15 +27,10 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecast() {
 	go connector.GetCityForecast("123", 1, forecasts, errors)
 
 	select {
-	case city := <-forecasts:
-		assert.Equal(suite.T(),
-			domain.Forecast{
-				MinimumTemp: 9.0,
-				MaximumTemp: 21.0,
-				TempUnit:    "C",
-				Sunrise:     "2019-05-15T06:44:00+10:00",
-				Sunset:      "2019-05-15T17:01:00+10:00"},
-			city)
+	case actualForecast := <-forecasts:
+		fmt.Println(actualForecast.DailyForecasts[0].Temperature.Minimum.Value)
+		assert.Equal(suite.T(), 19.3, actualForecast.DailyForecasts[0].Temperature.Maximum.Value)
+		assert.Equal(suite.T(), 8.3, actualForecast.DailyForecasts[0].Temperature.Minimum.Value)
 	case err := <-errors:
 		assert.Fail(suite.T(), "Unable to get Forecast because of %s", err.Error())
 	}
@@ -52,7 +38,7 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecast() {
 
 func (suite *ForecastTestSuite) TestGetCityWeatherForecastNotFound() {
 
-	forecasts := make(chan domain.Forecast)
+	forecasts := make(chan model.Forecast)
 	errors := make(chan error)
 
 	connector := upstream.NewForecastConnector(suite.HttpClient)
@@ -61,7 +47,7 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecastNotFound() {
 
 	select {
 	case city := <-forecasts:
-		assert.Equal(suite.T(), domain.Forecast{}, city)
+		assert.Equal(suite.T(), model.Forecast{}, city)
 	case err := <-errors:
 		assert.Fail(suite.T(), "Unable to get Forecast because of %s", err.Error())
 	}
@@ -78,7 +64,7 @@ func (suite *ForecastTestSuite) TestGetCityWeatherForecastFailed() {
 				[]map[string]interface{}{{}}, map[string]string{"Content-Type": "application/json"}, invalidStatusCode,
 			))
 
-		forecasts := make(chan domain.Forecast)
+		forecasts := make(chan model.Forecast)
 		errors := make(chan error)
 
 		connector := upstream.NewForecastConnector(suite.HttpClient)

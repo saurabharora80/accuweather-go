@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"org.example/hello/src/domain"
 	"org.example/hello/src/service"
+	"org.example/hello/src/upstream/model"
 	"testing"
 )
 
@@ -16,14 +17,17 @@ type MockCityConnector struct {
 	mock.Mock
 }
 
-func (m *MockForecastConnector) GetCityForecast(cityKey string, daysOfForecast int, forecastChan chan domain.Forecast, errorsChan chan error) {
+func (m *MockForecastConnector) GetCityForecast(cityKey string, daysOfForecast int, forecastChan chan model.Forecast, errorsChan chan error) {
 	m.Called(cityKey, daysOfForecast)
 	if cityKey == "VALID_CTY_KEY" {
-		forecastChan <- domain.Forecast{MinimumTemp: 9.0, MaximumTemp: 20.0}
+		forecast := model.Forecast{DailyForecasts: []model.DailyForecast{{}}}
+		forecast.DailyForecasts[0].Temperature.Minimum.Value = 9.0
+		forecast.DailyForecasts[0].Temperature.Maximum.Value = 20.0
+		forecastChan <- forecast
 	} else if cityKey == "IN_VALID_CTY_KEY" {
 		errorsChan <- &domain.HttpError{Method: "GET", Path: "/forecasts/v1/daily/5day/IN_VALID_CTY_KEY?metric=true", StatusCode: 404, Details: []byte("Not Found")}
 	} else {
-		forecastChan <- domain.Forecast{}
+		forecastChan <- model.Forecast{}
 	}
 }
 
@@ -52,7 +56,7 @@ func TestWeatherValid(t *testing.T) {
 
 	forecast, _ := weatherService.GetCityForecast("AU", "VALID", 5)
 
-	assert.Equal(t, domain.Forecast{MinimumTemp: 9.0, MaximumTemp: 20.0}, forecast)
+	assert.Equal(t, domain.DailyForecast{MinimumTemp: 9.0, MaximumTemp: 20.0}, forecast)
 
 }
 

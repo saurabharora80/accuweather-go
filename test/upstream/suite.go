@@ -1,11 +1,13 @@
 package upstream
 
-import "org.example/hello/test/common"
+import (
+	"org.example/hello/test"
+)
 
 type CityTestSuite struct {
-	common.WiremockTestSuite
+	test.WiremockTestSuite
 }
 
 type ForecastTestSuite struct {
-	common.WiremockTestSuite
+	test.WiremockTestSuite
 }

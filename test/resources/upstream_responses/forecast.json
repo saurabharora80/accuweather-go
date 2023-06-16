@@ -1,0 +1,50 @@
+{
+  "Headline": {
+    "EffectiveDate": "2023-06-17T07:00:00+10:00",
+    "EffectiveEpochDate": 1686949200,
+    "Severity": 4,
+    "Text": "Pleasant Saturday",
+    "Category": "mild",
+    "EndDate": null,
+    "EndEpochDate": null,
+    "MobileLink": "http://www.accuweather.com/en/au/sydney/22889/daily-weather-forecast/22889?unit=c&lang=en-us",
+    "Link": "http://www.accuweather.com/en/au/sydney/22889/daily-weather-forecast/22889?unit=c&lang=en-us"
+  },
+  "DailyForecasts": [
+    {
+      "Date": "2023-06-15T07:00:00+10:00",
+      "EpochDate": 1686776400,
+      "Temperature": {
+        "Minimum": {
+          "Value": 8.3,
+          "Unit": "C",
+          "UnitType": 17
+        },
+        "Maximum": {
+          "Value": 19.3,
+          "Unit": "C",
+          "UnitType": 17
+        }
+      },
+      "Sun" : {
+        "Set": "2023-06-15T16:56:00+10:00",
+        "Rise": "2023-06-15T06:54:00+10:00"
+      },
+      "Day": {
+        "Icon": 1,
+        "IconPhrase": "Sunny",
+        "HasPrecipitation": false
+      },
+      "Night": {
+        "Icon": 35,
+        "IconPhrase": "Partly cloudy",
+        "HasPrecipitation": false
+      },
+      "Sources": [
+        "AccuWeather"
+      ],
+      "MobileLink": "http://www.accuweather.com/en/au/sydney/22889/daily-weather-forecast/22889?day=1&unit=c&lang=en-us",
+      "Link": "http://www.accuweather.com/en/au/sydney/22889/daily-weather-forecast/22889?day=1&unit=c&lang=en-us"
+    }
+  ]
+}
